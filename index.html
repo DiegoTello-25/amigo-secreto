@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amigo Secreto</title>
+<style>
+  :root{
+    --bg:#fff7f0; --card:#ffffff; --ink:#2b2230; --muted:#7a6f80;
+    --red:#c8283c; --red-d:#a31d2f; --green:#1f7a52; --line:#eadfd6; --soft:#fdeceb;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#1c1620; --card:#271f2d; --ink:#f4ecf6; --muted:#a99db0; --line:#3a3040; --soft:#3a2229; --red:#ee5468; --red-d:#d63e53;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:680px;margin:0 auto;padding:24px 16px 64px}
+  header{text-align:center;margin-bottom:20px}
+  header h1{margin:0;font-size:2rem;letter-spacing:-.5px}
+  header p{margin:4px 0 0;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+  .card h2{margin:0 0 12px;font-size:1.1rem}
+  .step{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font-size:.85rem;margin-right:8px}
+  label{display:block;font-size:.85rem;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;background:var(--bg);color:var(--ink)}
+  input:focus,select:focus{outline:2px solid var(--red);outline-offset:1px}
+  .row{display:flex;gap:8px}
+  .row > input{flex:1}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:480px){.grid2{grid-template-columns:1fr}}
+  button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:11px 16px;background:var(--red);color:#fff;font-weight:600;transition:background .15s}
+  button:hover{background:var(--red-d)}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  button.ghost:hover{background:var(--soft)}
+  button.small{padding:7px 11px;font-size:.85rem}
+  button.big{width:100%;padding:15px;font-size:1.1rem;margin-top:14px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  ul{list-style:none;margin:12px 0 0;padding:0}
+  li.person{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
+  li.person .name{font-weight:600;word-break:break-word}
+  li.person .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .x{background:transparent;color:var(--muted);padding:4px 10px;font-size:1.2rem}
+  .x:hover{background:var(--soft);color:var(--red)}
+  .hint{font-size:.85rem;color:var(--muted);margin:8px 0 0}
+  .warn{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:.9rem;margin-bottom:10px}
+  .count{color:var(--muted);font-weight:400;font-size:.9rem}
+  .hidden{display:none!important}
+  .reveal{text-align:center;padding:32px 20px}
+  .reveal .hello{font-size:1.2rem;color:var(--muted)}
+  .reveal .gift{font-size:4rem;margin:6px 0}
+  .result{font-size:2.4rem;font-weight:800;color:var(--red);margin:10px 0;word-break:break-word;animation:pop .5s ease}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .meta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+  .pill{background:var(--soft);border-radius:999px;padding:5px 12px;font-size:.9rem}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}
+  .toast.show{opacity:1}
+  details{margin-top:6px}
+  summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎁 Amigo Secreto <span id="year">2026</span></h1>
+    <p id="subtitle">Sorteo rápido y secreto</p>
+  </header>
+
+  <!-- ====== VISTA DEL PARTICIPANTE ====== -->
+  <section id="viewer" class="hidden">
+    <div class="card reveal">
+      <div class="hello" id="vHello"></div>
+      <div class="gift" id="vGift">🎁</div>
+      <div id="vBefore">
+        <p>Tu amigo secreto está listo. ¡Asegúrate de que nadie esté mirando tu pantalla!</p>
+        <button class="big" id="vShow">Revelar mi amigo secreto</button>
+      </div>
+      <div id="vAfter" class="hidden">
+        <div>Debes regalarle a:</div>
+        <div class="result" id="vResult"></div>
+        <div class="meta" id="vMeta"></div>
+        <p class="hint">Es un secreto 🤫 No se lo cuentes a nadie.</p>
+        <button class="ghost" id="vHide" style="margin-top:12px">Ocultar</button>
+      </div>
+    </div>
+    <p class="hint" style="text-align:center"><a href="#" id="toOrg" style="color:var(--muted)">Ir al organizador</a></p>
+  </section>
+
+  <!-- ====== VISTA DEL ORGANIZADOR ====== -->
+  <section id="organizer">
+
+    <div class="card" id="eventsCard">
+      <h2>📅 Mis eventos</h2>
+      <div class="row">
+        <select id="evSel" aria-label="Evento"></select>
+        <button id="evNew" class="small" type="button">+ Nuevo</button>
+        <button id="evDel" class="small ghost" type="button" title="Eliminar este evento">🗑</button>
+      </div>
+      <p class="hint">Cada evento es un grupo distinto (familia, oficina, amigos…) con su propio sorteo.</p>
+    </div>
+
+    <div id="setup">
+      <div class="card">
+        <h2><span class="step">1</span>Participantes <span class="count" id="count"></span></h2>
+        <div class="row">
+          <input id="nameIn" type="text" placeholder="Nombre del participante" maxlength="40" autocomplete="off">
+          <button id="addBtn">Agregar</button>
+        </div>
+        <p class="hint">Puedes pegar varios nombres separados por coma o por línea.</p>
+        <ul id="list"></ul>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">2</span>Detalles (opcional)</h2>
+        <label for="title">Nombre del evento</label>
+        <input id="title" type="text" placeholder="Ej.: Amigos secretos de la oficina" maxlength="60">
+        <div class="grid2">
+          <div><label for="budget">Presupuesto</label><input id="budget" type="text" placeholder="Ej.: S/ 50" maxlength="20"></div>
+          <div><label for="date">Fecha de entrega</label><input id="date" type="text" placeholder="Ej.: 20 de diciembre" maxlength="30"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">3</span>Sortear</h2>
+        <button class="big" id="drawBtn" disabled style="margin-top:0">🎲 Hacer el sorteo</button>
+        <p class="hint" id="drawHint">Agrega al menos 3 participantes.</p>
+      </div>
+    </div>
+
+    <div id="done" class="hidden">
+      <div class="card">
+        <h2>✅ ¡Sorteo realizado!</h2>
+        <div class="warn">El organizador <b>no puede ver</b> quién le tocó a quién (a menos que abra los enlaces). Envía a cada persona <b>solo su enlace o código</b>.</div>
+        <ul id="results"></ul>
+        <details>
+          <summary>¿Cómo compartir los enlaces?</summary>
+          <p class="hint">Los enlaces funcionan donde esté publicado este archivo (por ejemplo, subiéndolo a Netlify Drop, GitHub Pages o Google Drive/OneDrive con vista web). Si solo envías el archivo .html por WhatsApp o correo, usa el <b>código</b>: cada persona abre el archivo, pega su código en «Tengo un código» y ve su resultado.</p>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>📱 Modo "pasar el dispositivo"</h2>
+        <p class="hint" style="margin-top:0">Si todos están juntos, cada persona elige su nombre en este mismo dispositivo.</p>
+        <label for="who">¿Quién eres?</label>
+        <select id="who"></select>
+        <button class="big" id="whoBtn" style="margin-top:12px">Ver mi amigo secreto</button>
+      </div>
+
+      <div class="card">
+        <button class="ghost" id="resetBtn">↩ Volver a empezar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>💾 Respaldo</h2>
+      <p class="hint" style="margin-top:0">Tus eventos se guardan automáticamente en este navegador. Descarga un respaldo para no perderlos si borras los datos del navegador o cambias de equipo.</p>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap">
+        <button class="ghost small" id="expBtn" type="button">⬇ Descargar respaldo</button>
+        <button class="ghost small" id="impBtn" type="button">⬆ Restaurar respaldo</button>
+        <input type="file" id="impFile" accept="application/json,.json" class="hidden">
+      </div>
+      <p class="hint" id="persistInfo"></p>
+    </div>
+
+    <div class="card">
+      <details id="codeBox">
+        <summary>Tengo un código</summary>
+        <div class="row" style="margin-top:10px">
+          <input id="codeIn" type="text" placeholder="Pega tu código aquí" autocomplete="off">
+          <button id="codeBtn">Ver</button>
+        </div>
+      </details>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){return document.getElementById(id)};
+  var KEY = "amigoSecretoV2", OLD_KEY = "amigoSecreto2026";
+  var db = { events: [], current: null };   // evento: {id,names,title,budget,date,tokens}
+  var state;                                // evento actual
+
+  function uid(){ return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function newEvent(title){ return { id:uid(), names:[], title:title||"", budget:"", date:"", tokens:null }; }
+  function evLabel(e, i){ return e.title || ("Evento " + (i+1)); }
+  function isEmpty(e){ return !e.names.length && !e.title && !e.tokens; }
+
+  // ---------- almacenamiento ----------
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(db)); }
+    catch(e){ toast("⚠ No se pudo guardar en el navegador. Descarga un respaldo."); }
+  }
+  function load(){
+    try{
+      var d = JSON.parse(localStorage.getItem(KEY) || "null");
+      if(d && Array.isArray(d.events)) db = d;
+      else {
+        // migración desde la versión anterior (un solo evento)
+        var o = JSON.parse(localStorage.getItem(OLD_KEY) || "null");
+        if(o && Array.isArray(o.names)){
+          var ev = newEvent(o.title); ev.names = o.names; ev.budget = o.budget||""; ev.date = o.date||""; ev.tokens = o.tokens||null;
+          db.events = [ev]; db.current = ev.id;
+        }
+      }
+    }catch(e){}
+    if(!db.events.length){ var f = newEvent(""); db.events = [f]; db.current = f.id; }
+    selectEvent(db.current);
+  }
+  function selectEvent(id){
+    state = db.events.filter(function(e){return e.id===id})[0] || db.events[0];
+    db.current = state.id;
+  }
+  function renderEvents(){
+    var sel = $("evSel"); sel.innerHTML = "";
+    db.events.forEach(function(e,i){ sel.appendChild(el("option",{value:e.id,text:evLabel(e,i)})); });
+    sel.value = state.id;
+  }
+  function renderAll(){
+    renderEvents();
+    $("title").value = state.title||""; $("budget").value = state.budget||""; $("date").value = state.date||"";
+    renderList();
+    if(state.tokens && state.tokens.length) renderDone();
+    else { $("done").classList.add("hidden"); $("setup").classList.remove("hidden"); }
+  }
+  // ---------- respaldo ----------
+  function exportBackup(){
+    var blob = new Blob([JSON.stringify({app:"amigo-secreto", version:2, db:db}, null, 1)], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "amigo-secreto-respaldo-" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(a.href)}, 1000);
+    toast("Respaldo descargado");
+  }
+  function importBackup(file){
+    var r = new FileReader();
+    r.onload = function(){
+      try{
+        var j = JSON.parse(r.result), evs = (j.db && j.db.events) || [];
+        if(!Array.isArray(evs) || !evs.length) throw new Error("vacío");
+        var n = 0;
+        evs.forEach(function(e){
+          if(!e || !Array.isArray(e.names)) return;
+          if(e.id && db.events.some(function(x){return x.id===e.id})) return;   // ya existe
+          db.events.push({id:e.id||uid(), names:e.names, title:e.title||"", budget:e.budget||"", date:e.date||"", tokens:e.tokens||null});
+          n++;
+        });
+        if(n && db.events.length > n) db.events = db.events.filter(function(e){ return !isEmpty(e); });
+        if(!db.events.length) db.events.push(newEvent(""));
+        selectEvent(db.current); save(); renderAll();
+        toast(n ? ("Restaurados " + n + " evento(s)") : "No había eventos nuevos que restaurar");
+      }catch(e){ toast("El archivo de respaldo no es válido"); }
+    };
+    r.readAsText(file);
+  }
+
+  // ---------- codificación de tokens ----------
+  function enc(obj){
+    var json = JSON.stringify(obj);
+    var b64 = btoa(unescape(encodeURIComponent(json)));
+    return b64.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  }
+  function dec(tok){
+    try{
+      tok = tok.trim().replace(/-/g,"+").replace(/_/g,"/");
+      while(tok.length % 4) tok += "=";
+      return JSON.parse(decodeURIComponent(escape(atob(tok))));
+    }catch(e){ return null; }
+  }
+  function linkFor(tok){
+    return location.href.split("#")[0] + "#v=" + tok;
+  }
+
+  // ---------- utilidades ----------
+  function toast(msg){
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast._t); toast._t = setTimeout(function(){t.classList.remove("show")}, 1800);
+  }
+  function copy(text, okMsg){
+    function fallback(){
+      var ta = document.createElement("textarea"); ta.value = text;
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); toast(okMsg); }catch(e){ prompt("Copia esto:", text); }
+      document.body.removeChild(ta);
+    }
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(function(){toast(okMsg)}, fallback);
+    } else fallback();
+  }
+  function el(tag, props, children){
+    var e = document.createElement(tag);
+    Object.keys(props||{}).forEach(function(k){
+      if(k==="text") e.textContent = props[k]; else if(k==="class") e.className = props[k]; else e[k] = props[k];
+    });
+    (children||[]).forEach(function(c){e.appendChild(c)});
+    return e;
+  }
+
+  // ---------- sorteo: algoritmo de Sattolo (ciclo único, nadie se toca a sí mismo) ----------
+  function randInt(n){
+    if(window.crypto && crypto.getRandomValues){
+      var a = new Uint32Array(1), max = Math.floor(4294967296 / n) * n, x;
+      do { crypto.getRandomValues(a); x = a[0]; } while(x >= max);
+      return x % n;
+    }
+    return Math.floor(Math.random()*n);
+  }
+  function draw(names){
+    var order = names.slice();
+    for(var i = order.length - 1; i > 0; i--){
+      var j = randInt(i);            // 0..i-1  => nunca j===i
+      var t = order[i]; order[i] = order[j]; order[j] = t;
+    }
+    var out = [];
+    for(var k = 0; k < order.length; k++){
+      out.push({giver: order[k], receiver: order[(k+1) % order.length]});
+    }
+    return out;
+  }
+
+  // ---------- organizador: participantes ----------
+  function addNames(raw){
+    var parts = raw.split(/[\n,;]+/).map(function(s){return s.trim().replace(/\s+/g," ")}).filter(Boolean);
+    var dup = [];
+    parts.forEach(function(n){
+      var exists = state.names.some(function(x){return x.toLowerCase() === n.toLowerCase()});
+      if(exists) dup.push(n); else state.names.push(n);
+    });
+    if(dup.length) toast("Ya estaba: " + dup.join(", "));
+    save(); renderList();
+  }
+  function renderList(){
+    var ul = $("list"); ul.innerHTML = "";
+    state.names.forEach(function(n, i){
+      var x = el("button", {class:"x", text:"×", title:"Quitar", type:"button"});
+      x.onclick = function(){ state.names.splice(i,1); save(); renderList(); };
+      ul.appendChild(el("li",{class:"person"},[el("span",{class:"name",text:n}), x]));
+    });
+    var c = state.names.length;
+    $("count").textContent = c ? "(" + c + ")" : "";
+    $("drawBtn").disabled = c < 3;
+    $("drawHint").textContent = c < 3 ? "Agrega al menos 3 participantes." : "Todo listo. Nadie se tocará a sí mismo.";
+  }
+
+  // ---------- organizador: resultados ----------
+  function renderDone(){
+    $("setup").classList.add("hidden");
+    $("done").classList.remove("hidden");
+    var ul = $("results"); ul.innerHTML = "";
+    var who = $("who"); who.innerHTML = "";
+    state.tokens.forEach(function(p){
+      var bLink = el("button",{class:"small", text:"🔗 Enlace", type:"button"});
+      bLink.onclick = function(){ copy(linkFor(p.token), "Enlace de " + p.name + " copiado"); };
+      var bCode = el("button",{class:"small ghost", text:"Código", type:"button"});
+      bCode.onclick = function(){ copy(p.token, "Código de " + p.name + " copiado"); };
+      var bWa = el("button",{class:"small ghost", text:"WhatsApp", type:"button"});
+      bWa.onclick = function(){
+        var msg = "Hola " + p.name + " 🎁 Tu enlace para ver tu amigo secreto" + (state.title ? " (" + state.title + ")" : "") + ": " + linkFor(p.token) + "\nCódigo por si el enlace no abre: " + p.token;
+        window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank", "noopener");
+      };
+      ul.appendChild(el("li",{class:"person"},[
+        el("span",{class:"name",text:p.name}),
+        el("span",{class:"acts"},[bLink,bCode,bWa])
+      ]));
+      who.appendChild(el("option",{value:p.token, text:p.name}));
+    });
+  }
+
+  // ---------- vista del participante ----------
+  function showViewer(data){
+    $("organizer").classList.add("hidden");
+    $("viewer").classList.remove("hidden");
+    $("subtitle").textContent = data.t || "Tu sorteo secreto";
+    $("vHello").textContent = "Hola, " + data.g + " 👋";
+    $("vGift").textContent = "🎁";
+    $("vBefore").classList.remove("hidden");
+    $("vAfter").classList.add("hidden");
+    $("vResult").textContent = data.r;
+    var meta = $("vMeta"); meta.innerHTML = "";
+    if(data.b) meta.appendChild(el("span",{class:"pill",text:"💰 " + data.b}));
+    if(data.d) meta.appendChild(el("span",{class:"pill",text:"📅 " + data.d}));
+    $("toOrg").style.display = data._fromHash ? "none" : "";
+  }
+  function showOrganizer(){
+    $("viewer").classList.add("hidden");
+    $("organizer").classList.remove("hidden");
+    $("subtitle").textContent = "Sorteo rápido y secreto";
+  }
+  function routeFromHash(){
+    var m = location.hash.match(/^#v=(.+)$/);
+    if(m){
+      var d = dec(m[1]);
+      if(d && d.g && d.r){ d._fromHash = true; showViewer(d); return; }
+      toast("El enlace no es válido");
+    }
+    showOrganizer();
+  }
+
+  // ---------- eventos ----------
+  $("year").textContent = new Date().getFullYear();
+
+  $("addBtn").onclick = function(){
+    var v = $("nameIn").value; if(!v.trim()) return;
+    addNames(v); $("nameIn").value = ""; $("nameIn").focus();
+  };
+  $("nameIn").addEventListener("keydown", function(e){ if(e.key === "Enter") $("addBtn").click(); });
+  $("nameIn").addEventListener("paste", function(e){
+    var txt = (e.clipboardData || window.clipboardData).getData("text");
+    if(/[\n,;]/.test(txt)){ e.preventDefault(); addNames(txt); }
+  });
+  ["title","budget","date"].forEach(function(k){
+    $(k).addEventListener("input", function(){
+      state[k] = $(k).value.trim(); save();
+      if(k === "title") renderEvents();
+    });
+  });
+
+  $("evSel").onchange = function(){ selectEvent($("evSel").value); save(); renderAll(); };
+  $("evNew").onclick = function(){
+    var e = newEvent(""); db.events.push(e); selectEvent(e.id); save(); renderAll();
+    $("title").focus(); toast("Nuevo evento creado");
+  };
+  $("evDel").onclick = function(){
+    var idx = db.events.indexOf(state);
+    if(!confirm("¿Eliminar «" + evLabel(state, idx) + "» y su sorteo? No se puede deshacer (descarga un respaldo antes si dudas).")) return;
+    db.events.splice(idx,1);
+    if(!db.events.length) db.events.push(newEvent(""));
+    selectEvent(db.events[Math.max(0, idx-1)].id); save(); renderAll();
+  };
+  $("expBtn").onclick = exportBackup;
+  $("impBtn").onclick = function(){ $("impFile").click(); };
+  $("impFile").onchange = function(){ if(this.files[0]) importBackup(this.files[0]); this.value = ""; };
+
+  $("drawBtn").onclick = function(){
+    if(state.names.length < 3) return;
+    var pairs = draw(state.names);
+    state.tokens = pairs.map(function(p){
+      return { name: p.giver, token: enc({ g:p.giver, r:p.receiver, t:state.title, b:state.budget, d:state.date }) };
+    });
+    // se muestra en el orden original de la lista
+    state.tokens.sort(function(a,b){ return state.names.indexOf(a.name) - state.names.indexOf(b.name); });
+    save(); renderDone();
+    window.scrollTo({top:0, behavior:"smooth"});
+  };
+
+  $("resetBtn").onclick = function(){
+    if(!confirm("Se borrará el sorteo actual y los enlaces dejarán de coincidir con la lista. ¿Volver a empezar?")) return;
+    state.tokens = null; save();
+    $("done").classList.add("hidden"); $("setup").classList.remove("hidden");
+  };
+
+  $("whoBtn").onclick = function(){
+    var tok = $("who").value; var d = dec(tok);
+    if(!d) return toast("No se pudo leer el sorteo");
+    d._fromHash = false;
+    showViewer(d);
+  };
+
+  $("codeBtn").onclick = function(){
+    var raw = $("codeIn").value.trim();
+    var m = raw.match(/#v=([^\s]+)/); if(m) raw = m[1];   // acepta también un enlace completo
+    var d = dec(raw);
+    if(d && d.g && d.r){ d._fromHash = false; showViewer(d); }
+    else toast("Código no válido");
+  };
+  $("codeIn").addEventListener("keydown", function(e){ if(e.key === "Enter") $("codeBtn").click(); });
+
+  $("vShow").onclick = function(){
+    $("vBefore").classList.add("hidden"); $("vAfter").classList.remove("hidden");
+    $("vGift").textContent = "🎉";
+  };
+  $("vHide").onclick = function(){
+    if($("toOrg").style.display === "none"){
+      $("vAfter").classList.add("hidden"); $("vBefore").classList.remove("hidden"); $("vGift").textContent = "🎁";
+    } else { history.replaceState(null,"",location.pathname+location.search); showOrganizer(); }
+  };
+  $("toOrg").onclick = function(e){ e.preventDefault(); history.replaceState(null,"",location.pathname+location.search); showOrganizer(); };
+
+  window.addEventListener("hashchange", routeFromHash);
+
+  // ---------- inicio ----------
+  load(); renderAll(); save();
+  // pedir al navegador que no borre estos datos automáticamente
+  if(navigator.storage && navigator.storage.persist){
+    navigator.storage.persist().then(function(ok){
+      $("persistInfo").textContent = ok
+        ? "✅ El navegador protegerá estos datos de borrados automáticos."
+        : "ℹ El navegador podría limpiar estos datos si necesita espacio: guarda un respaldo de vez en cuando.";
+    }).catch(function(){});
+  }
+  routeFromHash();
+})();
+</script>
+</body>
+</html>
